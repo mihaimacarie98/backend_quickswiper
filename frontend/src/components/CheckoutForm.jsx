@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const CheckoutForm = () => {
   const stripe = useStripe();
@@ -9,7 +10,21 @@ const CheckoutForm = () => {
   const { createSubscription } = useAuth();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [productDetails, setProductDetails] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      try {
+        const { data } = await axios.get('http://localhost:5000/api/product/price_1PcU5BRsW7phZaeKG6AlIvrp');
+        setProductDetails(data);
+      } catch (err) {
+        setError('Failed to fetch product details');
+      }
+    };
+
+    fetchProductDetails();
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -45,13 +60,25 @@ const CheckoutForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="container">
-      <CardElement />
-      {error && <div className="error-message">{error}</div>}
-      <button type="submit" disabled={!stripe || loading}>
-        {loading ? 'Processing...' : 'Subscribe'}
-      </button>
-    </form>
+    <div className="container">
+      {productDetails ? (
+        <div>
+          <h3>Product Details</h3>
+          <p><strong>Name:</strong> {productDetails.name}</p>
+          <p><strong>Description:</strong> {productDetails.description}</p>
+          <p><strong>Price:</strong> {productDetails.price / 100} {productDetails.currency.toUpperCase()}</p>
+        </div>
+      ) : (
+        <p>Loading product details...</p>
+      )}
+      <form onSubmit={handleSubmit}>
+        <CardElement />
+        {error && <div className="error-message">{error}</div>}
+        <button type="submit" disabled={!stripe || loading}>
+          {loading ? 'Processing...' : 'Subscribe'}
+        </button>
+      </form>
+    </div>
   );
 };
 

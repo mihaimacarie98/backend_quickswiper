@@ -46,7 +46,7 @@ const Subscriptions = () => {
               <p><strong>Start Date:</strong> {new Date(sub.current_period_start * 1000).toLocaleDateString()}</p>
               <p><strong>End Date:</strong> {new Date(sub.current_period_end * 1000).toLocaleDateString()}</p>
               <p><strong>Auto-Renewal:</strong> {sub.canceled_at_period_end ? 'Off' : 'On'}</p>
-              {sub.status !== 'canceled' && sub.status !== 'canceled_at_period_end' && (
+              {!sub.canceled_at_period_end && (
                 <button onClick={() => handleCancel(sub._id)}>Cancel</button>
               )}
             </li>
