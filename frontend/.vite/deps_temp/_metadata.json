@@ -1,0 +1,29 @@
+{
+  "hash": "d3746935",
+  "browserHash": "8adf6d6e",
+  "optimized": {
+    "react/jsx-runtime": {
+      "src": "../../node_modules/react/jsx-runtime.js",
+      "file": "react_jsx-runtime.js",
+      "fileHash": "8bfdb0c7",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "033b20fc",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "8a7f7ac5",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-ZL3XHQWZ": {
+      "file": "chunk-ZL3XHQWZ.js"
+    }
+  }
+}
