@@ -17,6 +17,16 @@ router.post('/create', auth, async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
+    // Check if the user already has an active subscription that is not set to cancel at period end
+    const activeSubscription = await Subscription.findOne({
+      userId: user._id,
+      status: { $in: ['active', 'trialing'] },
+      canceled_at_period_end: { $ne: true }
+    });
+    if (activeSubscription) {
+      return res.status(400).json({ msg: 'User already has an active subscription' });
+    }
+
     // Ensure stripeCustomerId is present and not an empty string
     if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
       return res.status(400).json({ msg: 'User does not have a valid Stripe customer ID' });
@@ -32,6 +42,9 @@ router.post('/create', auth, async (req, res) => {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
+    // Retrieve the price and product details
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+
     // Create the subscription
     const subscription = await stripe.subscriptions.create({
       customer: user.stripeCustomerId,
@@ -43,10 +56,15 @@ router.post('/create', auth, async (req, res) => {
       userId: user.id,
       stripeCustomerId: user.stripeCustomerId,
       stripeSubscriptionId: subscription.id,
-      priceId: priceId,
+      priceId: price.id,
+      price: price.unit_amount / 100, // Convert to dollars
+      currency: price.currency,
+      productName: price.product.name,
+      productDescription: price.product.description,
       status: subscription.status,
       current_period_start: subscription.current_period_start,
       current_period_end: subscription.current_period_end,
+      canceled_at_period_end: subscription.cancel_at_period_end,
     });
 
     await newSubscription.save();
@@ -73,13 +91,14 @@ router.get('/subscriptions', auth, async (req, res) => {
       subscription.status = stripeSubscription.status;
       subscription.current_period_start = stripeSubscription.current_period_start;
       subscription.current_period_end = stripeSubscription.current_period_end;
+      subscription.canceled_at_period_end = stripeSubscription.cancel_at_period_end;
       await subscription.save();
     }
 
     res.json(subscriptions.map(sub => ({
       ...sub._doc,
-      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+      current_period_start: sub.current_period_start,
+      current_period_end: sub.current_period_end,
     })));
   } catch (err) {
     console.error('Server error:', err.message);
@@ -103,7 +122,7 @@ router.post('/cancel', auth, async (req, res) => {
     });
 
     // Update the subscription status in the database
-    subscription.status = 'canceled_at_period_end';
+    subscription.status = canceledSubscription.status;
     subscription.canceled_at_period_end = true;
     subscription.canceled_at = new Date(canceledSubscription.cancel_at * 1000); // Convert timestamp to Date
     await subscription.save();

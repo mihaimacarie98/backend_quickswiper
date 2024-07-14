@@ -22,12 +22,14 @@ const Subscriptions = () => {
 
   const handleCancel = async (subscriptionId) => {
     try {
-      await cancelSubscription(subscriptionId);
-      setSubscriptions(subs => subs.filter(sub => sub._id !== subscriptionId));
+      const response = await cancelSubscription(subscriptionId);
+      setSubscriptions(subs => subs.map(sub => sub._id === subscriptionId ? response.subscription : sub));
     } catch (error) {
       setError('Failed to cancel subscription');
     }
   };
+
+  const hasActiveSubscription = subscriptions.some(sub => sub.status === 'active' || sub.status === 'trialing');
 
   return (
     <div className="container">
@@ -37,11 +39,14 @@ const Subscriptions = () => {
         <ul>
           {subscriptions.map((sub) => (
             <li key={sub._id}>
-              <p><strong>Price ID:</strong> {sub.priceId}</p>
+              <p><strong>Product Name:</strong> {sub.productName}</p>
+              <p><strong>Product Description:</strong> {sub.productDescription}</p>
+              <p><strong>Price:</strong> {sub.price} {sub.currency.toUpperCase()}</p>
               <p><strong>Status:</strong> {sub.status}</p>
-              <p><strong>Start Date:</strong> {new Date(sub.current_period_start).toLocaleDateString()}</p>
-              <p><strong>End Date:</strong> {sub.canceled_at_period_end ? 'Ongoing' : new Date(sub.current_period_end).toLocaleDateString()}</p>
-              {sub.status !== 'canceled' && (
+              <p><strong>Start Date:</strong> {new Date(sub.current_period_start * 1000).toLocaleDateString()}</p>
+              <p><strong>End Date:</strong> {new Date(sub.current_period_end * 1000).toLocaleDateString()}</p>
+              <p><strong>Auto-Renewal:</strong> {sub.canceled_at_period_end ? 'Off' : 'On'}</p>
+              {sub.status !== 'canceled' && sub.status !== 'canceled_at_period_end' && (
                 <button onClick={() => handleCancel(sub._id)}>Cancel</button>
               )}
             </li>
@@ -50,7 +55,7 @@ const Subscriptions = () => {
       ) : (
         <p>No subscriptions found.</p>
       )}
-      <Link to="/checkout">Create New Subscription</Link>
+      {(!hasActiveSubscription || subscriptions.every(sub => sub.canceled_at_period_end)) && <Link to="/checkout">Create New Subscription</Link>}
     </div>
   );
 };
