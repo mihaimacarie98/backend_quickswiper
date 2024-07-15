@@ -5,9 +5,10 @@ services:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - MONGO_URI=${MONGO_URI}
-      - JWT_SECRET=${JWT_SECRET}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+
+      - MONGO_URI=mongodb://localhost:27017/stripe-app
+      - JWT_SECRET=yourjwtsecret
+      - STRIPE_SECRET_KEY=sk_test_51PcTLARsW7phZaeK6hCh0gv2DF91SeBfIgLe95y0C43LRc8BXWIpaQqN0t5QEQqKIkG7HZf3ANQ6tWhl3qLkZZ8X00B2486hLG
     depends_on:
       - mongo
     networks:
@@ -16,7 +17,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       - NODE_ENV=production
     networks:
