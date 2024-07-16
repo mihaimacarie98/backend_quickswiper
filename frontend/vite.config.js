@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   base: '/client/',  // Add this line to set the base path
   build: {
-    outDir: 'dist'
-  }
+    outDir: 'dist',
+    assetsDir: 'assets',
+  },
+  server: {
+    port: 3000,
+  },
 });

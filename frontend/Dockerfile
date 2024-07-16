@@ -17,16 +17,16 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve the frontend application with Nginx
-FROM nginx:alpine
+FROM nginx:mainline-alpine
 
 # Copy the build output to Nginx's html directory
-COPY --from=build /usr/src/app/dist /usr/share/nginx/html
+COPY --from=build /usr/src/app/dist /usr/share/nginx/html/client
 
 # Copy the Nginx configuration file
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
 
 # Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx-debug", "-g", "daemon off;"]
