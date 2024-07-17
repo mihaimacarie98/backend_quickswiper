@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode'; // Correct import
 import { useNavigate } from 'react-router-dom';
-
+axios.defaults.baseURL = 'https://quickswiper.com';
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
 
   const register = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/users/register', { email, password });
+      const response = await axios.post('/api/user/register', { email, password });
       const { token } = response.data;
       const decoded = jwtDecode(token);
       setCurrentUser(decoded);
@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', { email, password });
+      const response = await axios.post('/api/user/login', { email, password });
       const { token } = response.data;
       const decoded = jwtDecode(token);
       setCurrentUser(decoded);
@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
 
   const createSubscription = async (paymentMethodId, priceId) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/subscription/create', { paymentMethodId, priceId }, {
+      const response = await axios.post('/api/subscription/create', { paymentMethodId, priceId }, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       return response.data;
@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
 
   const getSubscriptions = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/subscription/subscriptions', {
+      const response = await axios.get('/api/subscription/subscriptions', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       return response.data;
@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
 
   const cancelSubscription = async (subscriptionId) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/subscription/cancel', { subscriptionId }, {
+      const response = await axios.post('/api/subscription/cancel', { subscriptionId }, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       return response.data;

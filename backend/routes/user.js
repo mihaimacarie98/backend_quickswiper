@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -7,9 +7,12 @@ require('dotenv').config();
 
 const router = express.Router();
 
+//const bcrypt = require('bcryptjs');
+
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
-
+  console.log(email)
+  console.log(password)
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -32,11 +35,10 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in /register route:', err);
     res.status(500).send('Server error');
   }
 });
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 

@@ -12,13 +12,14 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet()); // Set security-related HTTP headers
 app.use(mongoSanitize()); // Sanitize user input
-
+app.options('*', cors())
 // CORS configuration
 app.use(cors({
-  origin: '*', // Specify your frontend URL here
-  credentials: true
+   origin: '*',
+   credentials: true
 }));
 
+//app.options('*', cors());
 app.use(express.json());
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -43,6 +44,12 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
+// Handle root path
+app.get('/', (req, res) => {
+  res.send('Welcome to the server!');
+});
+
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

@@ -1,32 +1,29 @@
 # Stage 1: Build the frontend application
 FROM node:18 AS build
 
-# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
 COPY . .
-
-# Build the application
 RUN npm run build
 
 # Stage 2: Serve the frontend application with Nginx
-FROM nginx:mainline-alpine
+FROM nginx:alpine
 
-# Copy the build output to Nginx's html directory
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html/client
 
-# Copy the Nginx configuration file
+# Copy the Nginx configuration
 COPY default.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Copy Let's Encrypt certificates
+COPY fullchain.pem /etc/nginx/fullchain.pem
+COPY privkey.pem /etc/nginx/privkey.pem
+#COPY /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/options-ssl-nginx.conf
+#COPY /etc/letsencrypt/ssl-dhparams.pem /etc/letsencrypt/ssl-dhparams.pem
 
-# Start Nginx
-CMD ["nginx-debug", "-g", "daemon off;"]
+EXPOSE 80
+EXPOSE 443
+
+CMD ["nginx", "-g", "daemon off;"]
