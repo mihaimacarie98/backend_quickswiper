@@ -13,14 +13,14 @@ services:
     networks:
       - app-network
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - app-network
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "3000:80"
+  #   environment:
+  #     - NODE_ENV=production
+  #   networks:
+  #     - app-network
 
   mongo:
     image: mongo:latest
