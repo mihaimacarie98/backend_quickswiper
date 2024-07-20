@@ -12,7 +12,7 @@ RUN npm run build
 # Stage 2: Serve the frontend application with Nginx
 FROM nginx:alpine
 
-COPY --from=build /usr/src/app/dist /usr/share/nginx/html/client
+COPY --from=build /usr/src/app/dist /usr/share/nginx/html/
 
 # Copy the Nginx configuration
 COPY default.conf /etc/nginx/conf.d/default.conf
