@@ -1,8 +1,9 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode'; // Correct import
 import { useNavigate } from 'react-router-dom';
 axios.defaults.baseURL = 'https://quickswiper.com';
+import PropTypes from 'prop-types';
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -10,6 +11,10 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
+  // Add prop validation for 'children'
+  AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
+  };
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 

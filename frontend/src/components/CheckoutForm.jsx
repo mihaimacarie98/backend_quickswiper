@@ -16,7 +16,7 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.get('http://localhost:5000/api/product/price_1PcU5BRsW7phZaeKG6AlIvrp');
+        const { data } = await axios.get('https://quickswiper.com/api/product/price_1PcU5BRsW7phZaeKG6AlIvrp');
         setProductDetails(data);
       } catch (err) {
         setError('Failed to fetch product details');
