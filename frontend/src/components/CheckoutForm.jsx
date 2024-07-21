@@ -23,7 +23,7 @@ const CheckoutForm = () => {
         });
         setProductDetails(data);
 
-        const setupIntentData = await axios.post('https://quickswiper.com/api/payment/create-setup-intent', null, {
+        const setupIntentData = await axios.post('https://quickswiper.com/api/subscription/create-setup-intent', null, {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         setClientSecret(setupIntentData.data.clientSecret);

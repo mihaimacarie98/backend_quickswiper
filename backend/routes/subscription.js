@@ -7,7 +7,6 @@ require('dotenv').config();
 
 const router = express.Router();
 
-// Route for creating a subscription
 router.post('/create', auth, async (req, res) => {
   const { paymentMethodId, priceId } = req.body;
 
@@ -32,6 +31,10 @@ router.post('/create', auth, async (req, res) => {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
+    // Retrieve the price and product details
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+    const product = price.product;
+
     // Create a new subscription
     const subscription = await stripe.subscriptions.create({
       customer: user.stripeCustomerId,
@@ -46,6 +49,8 @@ router.post('/create', auth, async (req, res) => {
       priceId: priceId,
       price: subscription.latest_invoice.payment_intent.amount_received / 100, // Convert to dollars
       currency: subscription.latest_invoice.payment_intent.currency,
+      productName: product.name,
+      productDescription: product.description,
       status: subscription.status,
       current_period_start: subscription.current_period_start,
       current_period_end: subscription.current_period_end,
@@ -59,6 +64,7 @@ router.post('/create', auth, async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+
 
 // Route for fetching all subscriptions for the user
 router.get('/subscriptions', auth, async (req, res) => {
