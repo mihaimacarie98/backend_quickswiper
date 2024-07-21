@@ -1,6 +1,7 @@
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);;
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 require('dotenv').config();
 const router = express.Router();
 // Route for fetching price details
@@ -21,7 +22,7 @@ router.post('/fetch-price-details', async (req, res) => {
   });
   
   // Route for creating a payment intent
-  router.post('/create-payment-intent', async (req, res) => {
+  router.post('/create-payment-intent', auth, async (req, res) => {
     const { priceId } = req.body;
   
     try {

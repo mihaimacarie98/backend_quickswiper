@@ -80,6 +80,18 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const createPaymentIntent = async (priceId) => {
+    try {
+      const response = await axios.post('/api/payment/create-payment-intent', { priceId }, {
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Payment intent creation failed:', error.response ? error.response.data : error.message);
+      throw new Error('Payment intent creation failed');
+    }
+  }
+
   const getSubscriptions = async () => {
     try {
       const response = await axios.get('/api/subscription/subscriptions', {
@@ -112,6 +124,7 @@ export function AuthProvider({ children }) {
     createSubscription,
     getSubscriptions,
     cancelSubscription,
+    createPaymentIntent
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
