@@ -37,6 +37,7 @@ db.once('open', () => {
 app.use('/api/user', require('./routes/user'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/product', require('./routes/product'));
+app.use('/api/payment', require('./routes/payment'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

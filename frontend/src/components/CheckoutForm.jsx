@@ -12,13 +12,21 @@ const CheckoutForm = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productDetails, setProductDetails] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.get('https://quickswiper.com/api/product/price_1Pf4QIRsW7phZaeKt1ayIe1Q');
+        const { data } = await axios.post('https://quickswiper.com/api/payment/fetch-price-details', {
+          priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
+        });
         setProductDetails(data);
+
+        const { data: clientSecretData } = await axios.post('https://quickswiper.com/api/payment/create-payment-intent', {
+          priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
+        });
+        setClientSecret(clientSecretData.clientSecret);
       } catch (err) {
         setError('Failed to fetch product details');
       }
@@ -31,28 +39,35 @@ const CheckoutForm = () => {
     event.preventDefault();
     setLoading(true);
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !clientSecret) {
       return;
     }
 
     const cardElement = elements.getElement(CardElement);
 
-    const { error: submitError, paymentMethod } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-    });
-
-    if (submitError) {
-      setError(submitError.message);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const subscription = await createSubscription(paymentMethod.id, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
-      console.log('Subscription created:', subscription);
-      // Redirect to the subscriptions page after successful payment
-      navigate('/subscriptions');
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: 'Customer Name',
+          },
+        },
+      });
+
+      if (confirmError) {
+        setError(confirmError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (paymentIntent.status === 'succeeded') {
+        const subscription = await createSubscription(paymentIntent.id, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
+        console.log('Subscription created:', subscription);
+        navigate('/subscriptions');
+      } else {
+        setError('Payment failed. Please try again.');
+      }
     } catch (err) {
       setError(err.message);
     }
