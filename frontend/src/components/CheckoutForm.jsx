@@ -17,7 +17,7 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.get('https://quickswiper.com/api/product/price_1PcU5BRsW7phZaeKG6AlIvrp');
+        const { data } = await axios.get('https://quickswiper.com/api/product/price_1Pf4QIRsW7phZaeKt1ayIe1Q');
         setProductDetails(data);
       } catch (err) {
         setError('Failed to fetch product details');
@@ -49,7 +49,7 @@ const CheckoutForm = () => {
     }
 
     try {
-      const subscription = await createSubscription(paymentMethod.id, 'price_1PcU5BRsW7phZaeKG6AlIvrp');
+      const subscription = await createSubscription(paymentMethod.id, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
       console.log('Subscription created:', subscription);
       // Redirect to the subscriptions page after successful payment
       navigate('/subscriptions');
