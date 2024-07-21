@@ -8,7 +8,7 @@ import { Container, Row, Col, Form, Button, Alert, Card, Table } from 'react-boo
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const { createSubscription, createPaymentIntent, currentUser } = useAuth();
+  const { createSubscription, currentUser } = useAuth();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productDetails, setProductDetails] = useState(null);
@@ -18,20 +18,22 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.post('/api/payment/fetch-price-details', {
+        const { data } = await axios.post('https://quickswiper.com/api/payment/fetch-price-details', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setProductDetails(data);
 
-        const paymentIntentData = await createPaymentIntent('price_1Pf4QIRsW7phZaeKt1ayIe1Q');
-        setClientSecret(paymentIntentData.clientSecret);
+        const setupIntentData = await axios.post('https://quickswiper.com/api/payment/create-setup-intent', null, {
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+        setClientSecret(setupIntentData.data.clientSecret);
       } catch (err) {
         setError('Failed to fetch product details');
       }
     };
 
     fetchProductDetails();
-  }, [createPaymentIntent]);
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -46,30 +48,35 @@ const CheckoutForm = () => {
     const cardElement = elements.getElement(CardElement);
 
     try {
-      const { error: confirmError, paymentIntent, paymentMethod } = await stripe.confirmCardPayment(clientSecret, {
+      const { error: setupError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
         payment_method: {
           card: cardElement,
           billing_details: {
-            name: currentUser.name, // Use the current user's name
+            name: currentUser ? currentUser.name : 'Customer Name', // Use the current user's name if available
           },
         },
       });
 
-      if (confirmError) {
-        setError(confirmError.message);
+      if (setupError) {
+        setError(setupError.message);
         setLoading(false);
         return;
       }
 
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
-        const subscriptionResponse = await createSubscription(paymentMethod.id, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
+      console.log("Setup Intent:", setupIntent); // Debugging log
+
+      if (setupIntent && setupIntent.status === 'succeeded') {
+        const paymentMethodId = setupIntent.payment_method;
+
+        const subscriptionResponse = await createSubscription(paymentMethodId, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
 
         console.log('Subscription created:', subscriptionResponse);
         navigate('/subscriptions');
       } else {
-        setError('Payment failed. Please try again.');
+        setError('Setup failed. Please try again.');
       }
     } catch (err) {
+      console.error('Error:', err); // Debugging log
       setError(err.message);
     }
 

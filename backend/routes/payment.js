@@ -51,4 +51,26 @@ router.post('/fetch-price-details', async (req, res) => {
     }
   });
 
+  router.post('/create-setup-intent', auth, async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ msg: 'User not found' });
+      }
+  
+      if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
+        return res.status(400).json({ msg: 'User does not have a valid Stripe customer ID' });
+      }
+  
+      const setupIntent = await stripe.setupIntents.create({
+        customer: user.stripeCustomerId,
+        payment_method_types: ['card'],
+      });
+  
+      res.json({ clientSecret: setupIntent.client_secret });
+    } catch (err) {
+      console.error('Server error:', err.message);
+      res.status(500).send('Server error');
+    }
+  });
 module.exports = router;
