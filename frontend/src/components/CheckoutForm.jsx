@@ -18,7 +18,7 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.post('/api/fetch-price-details', {
+        const { data } = await axios.post('/api/payment/fetch-price-details', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setProductDetails(data);
