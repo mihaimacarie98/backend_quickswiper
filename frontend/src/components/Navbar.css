@@ -1,0 +1,15 @@
+/* Navbar.css */
+.navbar-custom .navbar-brand,
+.navbar-custom .nav-link {
+  color: #ffffff !important; /* Ensures the text color is white */
+}
+
+.navbar-custom .btn-outline-light {
+  color: #ffffff !important; /* Ensures the button text color is white */
+  border-color: #ffffff !important; /* Ensures the button border color is white */
+}
+
+.navbar-custom .btn-outline-light:hover {
+  background-color: #ffffff !important; /* Changes button background color on hover */
+  color: #000000 !important; /* Changes button text color on hover */
+}

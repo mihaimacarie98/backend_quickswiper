@@ -7,7 +7,7 @@ services:
       - NODE_ENV=production
       - MONGO_URI=mongodb://mongo:27017/stripe-app
       - JWT_SECRET=yourjwtsecret
-      - STRIPE_SECRET_KEY=sk_test_51PcTLARsW7phZaeK6hCh0gv2DF91SeBfIgLe95y0C43LRc8BXWIpaQqN0t5QEQqKIkG7HZf3ANQ6tWhl3qLkZZ8X00B2486hLG
+      - STRIPE_SECRET_KEY=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
     depends_on:
       - mongo
     networks:
