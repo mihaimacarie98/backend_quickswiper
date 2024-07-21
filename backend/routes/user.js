@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
 
     console.log('New User:', newUser); // Log the new user for debugging
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
     res.json({ token });
   } catch (err) {
     console.error('Error in /register route:', err);
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
 
     console.log('User Logging In:', user); // Log the user logging in for debugging
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     res.json({ token });
   } catch (err) {
     console.error(err.message);
