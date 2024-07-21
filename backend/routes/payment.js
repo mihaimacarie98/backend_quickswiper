@@ -1,5 +1,7 @@
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);;
+const auth = require('../middleware/auth');
+const User = require('../models/User');
 require('dotenv').config();
 const router = express.Router();
 // Route for fetching price details
