@@ -32,49 +32,28 @@ router.post('/create', auth, async (req, res) => {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
-    // Check if the user already has an active subscription
-    let activeSubscription = await Subscription.findOne({
-      userId: user._id,
-      status: { $in: ['active', 'trialing'] },
+    // Create a new subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: user.stripeCustomerId,
+      items: [{ price: priceId }],
+      expand: ['latest_invoice.payment_intent'],
     });
 
-    if (activeSubscription) {
-      // Re-enable auto-renewal for the existing subscription
-      const updatedSubscription = await stripe.subscriptions.update(activeSubscription.stripeSubscriptionId, {
-        cancel_at_period_end: false,
-      });
+    const newSubscription = new Subscription({
+      userId: user.id,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: subscription.id,
+      priceId: priceId,
+      price: subscription.latest_invoice.payment_intent.amount_received / 100, // Convert to dollars
+      currency: subscription.latest_invoice.payment_intent.currency,
+      status: subscription.status,
+      current_period_start: subscription.current_period_start,
+      current_period_end: subscription.current_period_end,
+      canceled_at_period_end: subscription.cancel_at_period_end,
+    });
 
-      // Update the subscription in the database
-      activeSubscription.status = updatedSubscription.status;
-      activeSubscription.canceled_at_period_end = false;
-      activeSubscription.current_period_end = updatedSubscription.current_period_end;
-      await activeSubscription.save();
-
-      return res.json(activeSubscription);
-    } else {
-      // Create a new subscription
-      const subscription = await stripe.subscriptions.create({
-        customer: user.stripeCustomerId,
-        items: [{ price: priceId }],
-        expand: ['latest_invoice.payment_intent'],
-      });
-
-      const newSubscription = new Subscription({
-        userId: user.id,
-        stripeCustomerId: user.stripeCustomerId,
-        stripeSubscriptionId: subscription.id,
-        priceId: priceId,
-        price: subscription.latest_invoice.payment_intent.amount_received / 100, // Convert to dollars
-        currency: subscription.latest_invoice.payment_intent.currency,
-        status: subscription.status,
-        current_period_start: subscription.current_period_start,
-        current_period_end: subscription.current_period_end,
-        canceled_at_period_end: subscription.cancel_at_period_end,
-      });
-
-      await newSubscription.save();
-      res.json(newSubscription);
-    }
+    await newSubscription.save();
+    res.json(newSubscription);
   } catch (err) {
     console.error('Server error:', err.message);
     res.status(500).send('Server error');
