@@ -18,12 +18,12 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.post('https://quickswiper.com/api/fetch-price-details', {
+        const { data } = await axios.post('https://quickswiper.com/api/payment/fetch-price-details', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setProductDetails(data);
 
-        const { data: clientSecretData } = await axios.post('https://quickswiper.com/api/create-payment-intent', {
+        const { data: clientSecretData } = await axios.post('https://quickswiper.com/api/payment/create-payment-intent', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setClientSecret(clientSecretData.clientSecret);
