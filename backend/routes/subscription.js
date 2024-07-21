@@ -7,7 +7,6 @@ require('dotenv').config();
 
 const router = express.Router();
 
-// Route for creating a subscription
 router.post('/create', auth, async (req, res) => {
   const { paymentMethodId, priceId } = req.body;
 
@@ -27,6 +26,13 @@ router.post('/create', auth, async (req, res) => {
       return res.status(400).json({ msg: 'User already has an active subscription' });
     }
 
+    // Find the user's last subscription that was set to cancel at period end
+    const lastSubscription = await Subscription.findOne({
+      userId: user._id,
+      status: 'canceled',
+      canceled_at_period_end: true
+    }).sort({ current_period_end: -1 });
+
     // Ensure stripeCustomerId is present and not an empty string
     if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
       return res.status(400).json({ msg: 'User does not have a valid Stripe customer ID' });
@@ -45,10 +51,16 @@ router.post('/create', auth, async (req, res) => {
     // Retrieve the price and product details
     const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
 
+    // Define the subscription start date
+    const startDate = lastSubscription && lastSubscription.current_period_end > Math.floor(Date.now() / 1000)
+      ? lastSubscription.current_period_end
+      : Math.floor(Date.now() / 1000);
+
     // Create the subscription
     const subscription = await stripe.subscriptions.create({
       customer: user.stripeCustomerId,
       items: [{ price: priceId }],
+      billing_cycle_anchor: startDate,
       expand: ['latest_invoice.payment_intent'],
     });
 

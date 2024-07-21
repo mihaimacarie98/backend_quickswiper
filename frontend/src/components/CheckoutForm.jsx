@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Container, Row, Col, Form, Button, Alert, Card, Table } from 'react-bootstrap';
 
 const CheckoutForm = () => {
   const stripe = useStripe();
@@ -60,25 +61,50 @@ const CheckoutForm = () => {
   };
 
   return (
-    <div className="container">
-      {productDetails ? (
-        <div>
-          <h3>Product Details</h3>
-          <p><strong>Name:</strong> {productDetails.name}</p>
-          <p><strong>Description:</strong> {productDetails.description}</p>
-          <p><strong>Price:</strong> {productDetails.price / 100} {productDetails.currency.toUpperCase()}</p>
-        </div>
-      ) : (
-        <p>Loading product details...</p>
-      )}
-      <form onSubmit={handleSubmit}>
-        <CardElement />
-        {error && <div className="error-message">{error}</div>}
-        <button type="submit" disabled={!stripe || loading}>
-          {loading ? 'Processing...' : 'Subscribe'}
-        </button>
-      </form>
-    </div>
+    <Container className="mt-5">
+      <Row className="justify-content-center">
+        <Col md={8}>
+          <Card className="mb-4 shadow-sm">
+            <Card.Body>
+              <h2 className="text-center mb-4">Checkout</h2>
+              {productDetails ? (
+                <>
+                  <Card.Title className="text-center mb-3">Product Details</Card.Title>
+                  <Table bordered>
+                    <tbody>
+                      <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>{productDetails.name}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Description:</strong></td>
+                        <td>{productDetails.description}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Price:</strong></td>
+                        <td>{productDetails.price / 100} {productDetails.currency.toUpperCase()}</td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </>
+              ) : (
+                <p>Loading product details...</p>
+              )}
+              <Form onSubmit={handleSubmit}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Card Details</Form.Label>
+                  <CardElement className="form-control" />
+                </Form.Group>
+                {error && <Alert variant="danger">{error}</Alert>}
+                <Button type="submit" disabled={!stripe || loading} className="w-100">
+                  {loading ? 'Processing...' : 'Subscribe'}
+                </Button>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 

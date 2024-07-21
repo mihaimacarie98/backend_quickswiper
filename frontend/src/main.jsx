@@ -8,6 +8,7 @@ import Login from './components/Login';
 import Subscriptions from './components/Subscriptions';
 import Checkout from './components/Checkout';
 import PrivateRoute from './components/PrivateRoute';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
