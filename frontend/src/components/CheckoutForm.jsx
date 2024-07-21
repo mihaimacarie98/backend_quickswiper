@@ -40,6 +40,8 @@ const CheckoutForm = () => {
     setLoading(true);
 
     if (!stripe || !elements || !clientSecret) {
+      setError("Stripe has not loaded yet. Please try again.");
+      setLoading(false);
       return;
     }
 
@@ -50,7 +52,7 @@ const CheckoutForm = () => {
         payment_method: {
           card: cardElement,
           billing_details: {
-            name: 'Customer Name',
+            name: 'Customer Name', // Replace with actual customer name
           },
         },
       });
@@ -61,12 +63,13 @@ const CheckoutForm = () => {
         return;
       }
 
-      if (paymentIntent.status === 'succeeded') {
-        const subscription = await axios.post('https://quickswiper.com/api/subscriptions/create', {
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        const subscriptionResponse = await axios.post('https://quickswiper.com/api/subscriptions/create', {
           paymentMethodId: paymentMethod.id,
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
-        console.log('Subscription created:', subscription.data);
+
+        console.log('Subscription created:', subscriptionResponse.data);
         navigate('/subscriptions');
       } else {
         setError('Payment failed. Please try again.');
@@ -100,7 +103,7 @@ const CheckoutForm = () => {
                       </tr>
                       <tr>
                         <td><strong>Price:</strong></td>
-                        <td>{productDetails.price / 100} {productDetails.currency.toUpperCase()}</td>
+                        <td>{(productDetails.price / 100).toFixed(2)} {productDetails.currency.toUpperCase()}</td>
                       </tr>
                     </tbody>
                   </Table>
