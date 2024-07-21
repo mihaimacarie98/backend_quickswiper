@@ -17,22 +17,11 @@ router.post('/create', auth, async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    // Check if the user already has an active subscription that is not set to cancel at period end
-    const activeSubscription = await Subscription.findOne({
+    // Check if the user already has an active subscription
+    let activeSubscription = await Subscription.findOne({
       userId: user._id,
       status: { $in: ['active', 'trialing'] },
-      canceled_at_period_end: { $ne: true }
     });
-    if (activeSubscription) {
-      return res.status(400).json({ msg: 'User already has an active subscription' });
-    }
-
-    // Find the user's last subscription that was set to cancel at period end
-    const lastCanceledSubscription = await Subscription.findOne({
-      userId: user._id,
-      status: 'active',
-      canceled_at_period_end: true
-    }).sort({ current_period_end: -1 });
 
     // Ensure stripeCustomerId is present and not an empty string
     if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
@@ -49,43 +38,48 @@ router.post('/create', auth, async (req, res) => {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
-    // Retrieve the price and product details
-    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+    if (activeSubscription) {
+      // Re-enable auto-renewal for the existing subscription
+      const updatedSubscription = await stripe.subscriptions.update(activeSubscription.stripeSubscriptionId, {
+        cancel_at_period_end: false,
+      });
 
-    // Determine the billing cycle anchor
-    let billingCycleAnchor = Math.floor(Date.now() / 1000); // Default to now
-    if (lastCanceledSubscription) {
-      const lastEndTimestamp = lastCanceledSubscription.current_period_end;
-      if (lastEndTimestamp > billingCycleAnchor) {
-        billingCycleAnchor = lastEndTimestamp;
-      }
+      // Update the subscription in the database
+      activeSubscription.status = updatedSubscription.status;
+      activeSubscription.canceled_at_period_end = false;
+      activeSubscription.current_period_end = updatedSubscription.current_period_end;
+      await activeSubscription.save();
+
+      return res.json(activeSubscription);
+    } else {
+      // Retrieve the price and product details
+      const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+
+      // Create a new subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: user.stripeCustomerId,
+        items: [{ price: priceId }],
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      const newSubscription = new Subscription({
+        userId: user.id,
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: subscription.id,
+        priceId: price.id,
+        price: price.unit_amount / 100, // Convert to dollars
+        currency: price.currency,
+        productName: price.product.name,
+        productDescription: price.product.description,
+        status: subscription.status,
+        current_period_start: subscription.current_period_start,
+        current_period_end: subscription.current_period_end,
+        canceled_at_period_end: subscription.cancel_at_period_end,
+      });
+
+      await newSubscription.save();
+      res.json(newSubscription);
     }
-
-    // Create the subscription
-    const subscription = await stripe.subscriptions.create({
-      customer: user.stripeCustomerId,
-      items: [{ price: priceId }],
-      billing_cycle_anchor: billingCycleAnchor,
-      expand: ['latest_invoice.payment_intent'],
-    });
-
-    const newSubscription = new Subscription({
-      userId: user.id,
-      stripeCustomerId: user.stripeCustomerId,
-      stripeSubscriptionId: subscription.id,
-      priceId: price.id,
-      price: price.unit_amount / 100, // Convert to dollars
-      currency: price.currency,
-      productName: price.product.name,
-      productDescription: price.product.description,
-      status: subscription.status,
-      current_period_start: subscription.current_period_start,
-      current_period_end: subscription.current_period_end,
-      canceled_at_period_end: subscription.cancel_at_period_end,
-    });
-
-    await newSubscription.save();
-    res.json(newSubscription);
   } catch (err) {
     console.error('Server error:', err.message);
     res.status(500).send('Server error');
