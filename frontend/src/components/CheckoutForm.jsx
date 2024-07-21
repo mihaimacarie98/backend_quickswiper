@@ -18,12 +18,12 @@ const CheckoutForm = () => {
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const { data } = await axios.post('https://quickswiper.com/api/payment/fetch-price-details', {
+        const { data } = await axios.post('https://quickswiper.com/api/fetch-price-details', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setProductDetails(data);
 
-        const { data: clientSecretData } = await axios.post('https://quickswiper.com/api/payment/create-payment-intent', {
+        const { data: clientSecretData } = await axios.post('https://quickswiper.com/api/create-payment-intent', {
           priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
         });
         setClientSecret(clientSecretData.clientSecret);
@@ -46,7 +46,7 @@ const CheckoutForm = () => {
     const cardElement = elements.getElement(CardElement);
 
     try {
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      const { error: confirmError, paymentIntent, paymentMethod } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,
           billing_details: {
@@ -62,8 +62,11 @@ const CheckoutForm = () => {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        const subscription = await createSubscription(paymentIntent.id, 'price_1Pf4QIRsW7phZaeKt1ayIe1Q');
-        console.log('Subscription created:', subscription);
+        const subscription = await axios.post('https://quickswiper.com/api/subscriptions/create', {
+          paymentMethodId: paymentMethod.id,
+          priceId: 'price_1Pf4QIRsW7phZaeKt1ayIe1Q',
+        });
+        console.log('Subscription created:', subscription.data);
         navigate('/subscriptions');
       } else {
         setError('Payment failed. Please try again.');

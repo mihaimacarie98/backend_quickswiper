@@ -17,12 +17,6 @@ router.post('/create', auth, async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    // Check if the user already has an active subscription
-    let activeSubscription = await Subscription.findOne({
-      userId: user._id,
-      status: { $in: ['active', 'trialing'] },
-    });
-
     // Ensure stripeCustomerId is present and not an empty string
     if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
       return res.status(400).json({ msg: 'User does not have a valid Stripe customer ID' });
@@ -36,6 +30,12 @@ router.post('/create', auth, async (req, res) => {
     // Set the default payment method on the customer
     await stripe.customers.update(user.stripeCustomerId, {
       invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    // Check if the user already has an active subscription
+    let activeSubscription = await Subscription.findOne({
+      userId: user._id,
+      status: { $in: ['active', 'trialing'] },
     });
 
     if (activeSubscription) {
@@ -52,9 +52,6 @@ router.post('/create', auth, async (req, res) => {
 
       return res.json(activeSubscription);
     } else {
-      // Retrieve the price and product details
-      const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
-
       // Create a new subscription
       const subscription = await stripe.subscriptions.create({
         customer: user.stripeCustomerId,
@@ -66,11 +63,9 @@ router.post('/create', auth, async (req, res) => {
         userId: user.id,
         stripeCustomerId: user.stripeCustomerId,
         stripeSubscriptionId: subscription.id,
-        priceId: price.id,
-        price: price.unit_amount / 100, // Convert to dollars
-        currency: price.currency,
-        productName: price.product.name,
-        productDescription: price.product.description,
+        priceId: priceId,
+        price: subscription.latest_invoice.payment_intent.amount_received / 100, // Convert to dollars
+        currency: subscription.latest_invoice.payment_intent.currency,
         status: subscription.status,
         current_period_start: subscription.current_period_start,
         current_period_end: subscription.current_period_end,
