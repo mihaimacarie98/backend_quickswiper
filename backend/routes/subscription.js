@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const router = express.Router();
 
+// Route for creating a subscription
 router.post('/create', auth, async (req, res) => {
   const { paymentMethodId, priceId } = req.body;
 
@@ -27,9 +28,9 @@ router.post('/create', auth, async (req, res) => {
     }
 
     // Find the user's last subscription that was set to cancel at period end
-    const lastSubscription = await Subscription.findOne({
+    const lastCanceledSubscription = await Subscription.findOne({
       userId: user._id,
-      status: 'active',
+      status: 'canceled',
       canceled_at_period_end: true
     }).sort({ current_period_end: -1 });
 
@@ -51,16 +52,20 @@ router.post('/create', auth, async (req, res) => {
     // Retrieve the price and product details
     const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
 
-    // Define the subscription start date
-    const startDate = lastSubscription && lastSubscription.current_period_end > Math.floor(Date.now() / 1000)
-      ? lastSubscription.current_period_end
-      : Math.floor(Date.now() / 1000);
+    // Determine the billing cycle anchor
+    let billingCycleAnchor = Math.floor(Date.now() / 1000); // Default to now
+    if (lastCanceledSubscription) {
+      const lastEndTimestamp = lastCanceledSubscription.current_period_end;
+      if (lastEndTimestamp > billingCycleAnchor) {
+        billingCycleAnchor = lastEndTimestamp;
+      }
+    }
 
     // Create the subscription
     const subscription = await stripe.subscriptions.create({
       customer: user.stripeCustomerId,
       items: [{ price: priceId }],
-      billing_cycle_anchor: startDate,
+      billing_cycle_anchor: billingCycleAnchor,
       expand: ['latest_invoice.payment_intent'],
     });
 
