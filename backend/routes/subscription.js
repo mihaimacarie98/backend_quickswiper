@@ -30,7 +30,7 @@ router.post('/create', auth, async (req, res) => {
     // Find the user's last subscription that was set to cancel at period end
     const lastCanceledSubscription = await Subscription.findOne({
       userId: user._id,
-      status: 'canceled',
+      status: 'active',
       canceled_at_period_end: true
     }).sort({ current_period_end: -1 });
 
