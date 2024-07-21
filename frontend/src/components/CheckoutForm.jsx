@@ -8,7 +8,7 @@ import { Container, Row, Col, Form, Button, Alert, Card, Table } from 'react-boo
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const { createSubscription } = useAuth();
+  const { currentUser } = useAuth();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [productDetails, setProductDetails] = useState(null);
@@ -52,7 +52,7 @@ const CheckoutForm = () => {
         payment_method: {
           card: cardElement,
           billing_details: {
-            name: 'Customer Name', // Replace with actual customer name
+            name: currentUser.displayName, // Use the current user's name
           },
         },
       });
