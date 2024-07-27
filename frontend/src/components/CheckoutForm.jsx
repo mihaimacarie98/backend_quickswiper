@@ -28,17 +28,12 @@ const CheckoutForm = () => {
         setProductDetails(data);
 
         let intentData;
-        if (paymentMethodType === 'sepa_debit') {
-          intentData = await axios.post('/api/payment/create-setup-intent', null, {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-          });
-          setIsSetupIntent(true);
-        } else {
-          intentData = await createPaymentIntent(import.meta.env.VITE_PRICE_ID1, paymentMethodType);
-          setIsSetupIntent(false);
-        }
+        intentData = await axios.post('/api/payment/create-setup-intent', null, {
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+        setIsSetupIntent(true);
 
-        setClientSecret(intentData.clientSecret);
+        setClientSecret(intentData.data.clientSecret);
         setError(null); // Reset error state if product details are fetched successfully
       } catch (err) {
         setError('Failed to fetch product details');

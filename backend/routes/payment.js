@@ -67,7 +67,7 @@ router.post('/create-setup-intent', auth, async (req, res) => {
 
     const setupIntent = await stripe.setupIntents.create({
       customer: user.stripeCustomerId,
-      payment_method_types: ['sepa_debit'],
+      payment_method_types: ['sepa_debit', 'card', 'ideal', 'paypal', 'mobilepay'],
     });
 
     res.json({ clientSecret: setupIntent.client_secret });
