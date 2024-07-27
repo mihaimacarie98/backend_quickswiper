@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CardElement, useStripe, useElements, IbanElement, IdealBankElement } from '@stripe/react-stripe-js';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -81,119 +81,12 @@ const CheckoutForm = () => {
         return;
       }
       paymentMethod = cardPaymentMethod;
-    } else if (paymentMethodType === 'sepa_debit') {
-      const ibanElement = elements.getElement(IbanElement);
-      const { error, paymentMethod: sepaPaymentMethod } = await stripe.createPaymentMethod({
-        type: 'sepa_debit',
-        sepa_debit: ibanElement,
-        billing_details: billingDetails,
-      });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-        return;
-      }
-      paymentMethod = sepaPaymentMethod;
-    } else if (paymentMethodType === 'ideal') {
-      const idealElement = elements.getElement(IdealBankElement);
-      const { error, paymentMethod: idealPaymentMethod } = await stripe.createPaymentMethod({
-        type: 'ideal',
-        ideal: idealElement,
-        billing_details: billingDetails,
-      });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-        return;
-      }
-      paymentMethod = idealPaymentMethod;
-    } else if (paymentMethodType === 'mobilepay') {
-      const { error, paymentMethod: mobilepayPaymentMethod } = await stripe.createPaymentMethod({
-        type: 'mobilepay',
-        billing_details: billingDetails,
-      });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-        return;
-      }
-      paymentMethod = mobilepayPaymentMethod;
-    } else if (paymentMethodType === 'paypal') {
-      const { error, paymentMethod: paypalPaymentMethod } = await stripe.createPaymentMethod({
-        type: 'paypal',
-        billing_details: billingDetails,
-      });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-        return;
-      }
-      paymentMethod = paypalPaymentMethod;
-    } else if (paymentMethodType === 'googlepay') {
-      const { error, paymentMethod: googlePayPaymentMethod } = await stripe.createPaymentMethod({
-        type: 'google_pay',
-        billing_details: billingDetails,
-      });
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-        return;
-      }
-      paymentMethod = googlePayPaymentMethod;
     }
 
     try {
-      let result;
-
-      if (paymentMethodType === 'card') {
-        result = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethod.id,
-        });
-      } else if (paymentMethodType === 'ideal') {
-        const paymentIntentId = clientSecret.split('_secret_')[0];
-        result = await stripe.confirmIdealPayment(clientSecret, {
-          payment_method: {
-            ideal: elements.getElement(IdealBankElement),
-            billing_details: billingDetails,
-          },
-          return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-ideal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
-        });
-      } else if (paymentMethodType === 'mobilepay') {
-        const paymentIntentId = clientSecret.split('_secret_')[0];
-        result = await stripe.confirmMobilepayPayment(clientSecret, {
-          payment_method: paymentMethod.id,
-          return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-mobilepay-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
-        });
-      } else if (paymentMethodType === 'paypal') {
-        const paymentIntentId = clientSecret.split('_secret_')[0];
-        result = await stripe.confirmPaypalPayment(clientSecret, {
-          payment_method: paymentMethod.id,
-          return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-paypal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
-        });
-      } else if (paymentMethodType === 'googlepay') {
-        const paymentIntentId = clientSecret.split('_secret_')[0];
-        result = await stripe.confirmGooglePayPayment(clientSecret, {
-          payment_method: paymentMethod.id,
-          return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-googlepay-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
-        });
-      }
-
-
+      const result = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: paymentMethod.id,
+      });
 
       if (result.error) {
         setError(result.error.message);
@@ -210,7 +103,7 @@ const CheckoutForm = () => {
         return;
       }
 
-      // Create subscription after payment is confirmed
+      // Create subscription after payment method is set up
       const subscriptionResponse = await createSubscription(paymentMethod.id, import.meta.env.VITE_PRICE_ID1);
 
       console.log('Subscription created:', subscriptionResponse);
@@ -223,7 +116,6 @@ const CheckoutForm = () => {
       }
     }
   };
-
 
   return (
     <Container className="mt-5">
@@ -267,12 +159,6 @@ const CheckoutForm = () => {
                   <Form.Group className="mb-3">
                     <Form.Label>Card Details</Form.Label>
                     <CardElement className="form-control" />
-                  </Form.Group>
-                )}
-                {paymentMethodType === 'sepa_debit' && (
-                  <Form.Group className="mb-3">
-                    <Form.Label>IBAN</Form.Label>
-                    <IbanElement className="form-control" options={{ supportedCountries: ['SEPA'] }} />
                   </Form.Group>
                 )}
                 {error && <Alert variant="danger">{error}</Alert>}
