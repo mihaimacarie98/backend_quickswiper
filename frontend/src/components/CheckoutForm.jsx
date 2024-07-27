@@ -51,22 +51,29 @@ const CheckoutForm = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-
+  
+    // Disable the submit button to prevent multiple clicks
+    const submitButton = event.target.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+  
     if (!stripe || !elements || !clientSecret) {
       setError("Stripe has not loaded yet. Please try again.");
       setLoading(false);
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
       return;
     }
-
+  
     const billingDetails = {
       name: currentUser ? currentUser.name : 'Customer Name',
       email: currentUser ? currentUser.email : 'customer@example.com',
     };
-
-    const idealElement = elements.getElement(IdealBankElement);
-
+  
     let paymentMethod;
-
+  
     if (paymentMethodType === 'card') {
       const cardElement = elements.getElement(CardElement);
       const { error, paymentMethod: cardPaymentMethod } = await stripe.createPaymentMethod({
@@ -77,6 +84,9 @@ const CheckoutForm = () => {
       if (error) {
         setError(error.message);
         setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
         return;
       }
       paymentMethod = cardPaymentMethod;
@@ -90,10 +100,14 @@ const CheckoutForm = () => {
       if (error) {
         setError(error.message);
         setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
         return;
       }
       paymentMethod = sepaPaymentMethod;
     } else if (paymentMethodType === 'ideal') {
+      const idealElement = elements.getElement(IdealBankElement);
       const { error, paymentMethod: idealPaymentMethod } = await stripe.createPaymentMethod({
         type: 'ideal',
         ideal: idealElement,
@@ -102,33 +116,56 @@ const CheckoutForm = () => {
       if (error) {
         setError(error.message);
         setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
         return;
       }
       paymentMethod = idealPaymentMethod;
-    }else if (paymentMethodType === 'googlePay') {
-        const { error, paymentMethod: googlePayPaymentMethod } = await stripe.createPaymentMethod({
-          type: 'googlePay',
-          billing_details: billingDetails,
-        });
-        if (error) {
-          setError(error.message);
-          setLoading(false);
-          return;
-        }
-        paymentMethod = googlePayPaymentMethod;
-    } else if (['paypal', 'mobilepay'].includes(paymentMethodType)) {
-      const { error, paymentMethod: otherPaymentMethod } = await stripe.createPaymentMethod({
-        type: paymentMethodType,
+    } else if (paymentMethodType === 'mobilepay') {
+      const { error, paymentMethod: mobilepayPaymentMethod } = await stripe.createPaymentMethod({
+        type: 'mobilepay',
         billing_details: billingDetails,
       });
       if (error) {
         setError(error.message);
         setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
         return;
       }
-      paymentMethod = otherPaymentMethod;
+      paymentMethod = mobilepayPaymentMethod;
+    } else if (paymentMethodType === 'paypal') {
+      const { error, paymentMethod: paypalPaymentMethod } = await stripe.createPaymentMethod({
+        type: 'paypal',
+        billing_details: billingDetails,
+      });
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+        return;
+      }
+      paymentMethod = paypalPaymentMethod;
+    } else if (paymentMethodType === 'googlepay') {
+      const { error, paymentMethod: googlePayPaymentMethod } = await stripe.createPaymentMethod({
+        type: 'google_pay',
+        billing_details: billingDetails,
+      });
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+        return;
+      }
+      paymentMethod = googlePayPaymentMethod;
     }
-
+  
     try {
       let result;
       if (isSetupIntent) {
@@ -140,44 +177,66 @@ const CheckoutForm = () => {
           result = await stripe.confirmCardPayment(clientSecret, {
             payment_method: paymentMethod.id,
           });
+        } else if (paymentMethodType === 'ideal') {
+          const paymentIntentId = clientSecret.split('_secret_')[0];
+          result = await stripe.confirmIdealPayment(clientSecret, {
+            payment_method: {
+              ideal: elements.getElement(IdealBankElement),
+              billing_details: billingDetails,
+            },
+            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-ideal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
+          });
+        } else if (paymentMethodType === 'mobilepay') {
+          const paymentIntentId = clientSecret.split('_secret_')[0];
+          result = await stripe.confirmMobilepayPayment(clientSecret, {
+            payment_method: paymentMethod.id,
+            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-mobilepay-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
+          });
         } else if (paymentMethodType === 'paypal') {
           const paymentIntentId = clientSecret.split('_secret_')[0];
           result = await stripe.confirmPaypalPayment(clientSecret, {
             payment_method: paymentMethod.id,
-            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-ideal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
+            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-paypal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
           });
-        }  else if (paymentMethodType === 'googlePay') {
+        } else if (paymentMethodType === 'googlepay') {
           const paymentIntentId = clientSecret.split('_secret_')[0];
           result = await stripe.confirmGooglePayPayment(clientSecret, {
             payment_method: paymentMethod.id,
-            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-ideal-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
+            return_url: `${import.meta.env.VITE_BACKEND_URL}/api/subscription/confirm-googlepay-payment?payment_intent_id=${paymentIntentId}&priceId=${import.meta.env.VITE_PRICE_ID1}`,
           });
         }
       }
-
+  
       if (result.error) {
         setError(result.error.message);
-
+  
         // Refresh the payment intent if the payment fails
         if (!isSetupIntent) {
           const intentData = await createPaymentIntent(import.meta.env.VITE_PRICE_ID1, paymentMethodType);
           setClientSecret(intentData.clientSecret);
         }
-
+  
         setLoading(false);
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
         return;
       }
-
+  
       // Create subscription after payment is confirmed
       const subscriptionResponse = await createSubscription(paymentMethod.id, import.meta.env.VITE_PRICE_ID1);
-
+  
       console.log('Subscription created:', subscriptionResponse);
       navigate('/subscriptions');
     } catch (err) {
       setError(err.message);
       setLoading(false);
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
     }
   };
+  
 
   return (
     <Container className="mt-5">
