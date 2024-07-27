@@ -41,10 +41,8 @@ router.post('/create-payment-intent', auth, async (req, res) => {
       metadata: {
         userId: req.user.id, // Include user ID in metadata
         paymentMethodId: paymentMethodId
-      }
-    }
-    if (paymentMethodType === 'card' && paymentMethodType ==='ideal') {
-      paymentIntentDetails.setup_future_usage = 'off_session';
+      },
+      setup_future_usage: 'off_session'
     }
 
     const paymentIntent = await stripe.paymentIntents.create(paymentIntentDetails);
