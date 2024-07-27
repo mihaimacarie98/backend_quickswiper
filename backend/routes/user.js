@@ -10,9 +10,7 @@ const router = express.Router();
 //const bcrypt = require('bcryptjs');
 
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-  console.log(email)
-  console.log(password)
+  const { email, password , firstName, lastName} = req.body;
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -25,6 +23,8 @@ router.post('/register', async (req, res) => {
     const newUser = new User({
       email,
       password: hashedPassword,
+      firstName,
+      lastName,
       stripeCustomerId: customer.id,
     });
 

@@ -1,9 +1,10 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode'; // Correct import
+import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
-axios.defaults.baseURL = 'https://quickswiper.com';
 import PropTypes from 'prop-types';
+
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -11,10 +12,10 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  // Add prop validation for 'children'
   AuthProvider.propTypes = {
     children: PropTypes.node.isRequired,
   };
+  
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
@@ -32,14 +33,14 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const register = async (email, password) => {
+  const register = async (email, password, firstName, lastName) => {
     try {
-      const response = await axios.post('/api/user/register', { email, password });
+      const response = await axios.post('/api/user/register', { email, password, firstName, lastName });
       const { token } = response.data;
       const decoded = jwtDecode(token);
       setCurrentUser(decoded);
-      localStorage.setItem('token', token); // Store token in localStorage
-      navigate('/subscriptions'); // Redirect to subscriptions page after registration
+      localStorage.setItem('token', token);
+      navigate('/subscriptions');
       return response.data;
     } catch (error) {
       console.error('Registration failed:', error.response ? error.response.data : error.message);
@@ -53,8 +54,8 @@ export function AuthProvider({ children }) {
       const { token } = response.data;
       const decoded = jwtDecode(token);
       setCurrentUser(decoded);
-      localStorage.setItem('token', token); // Store token in localStorage
-      navigate('/subscriptions'); // Redirect to subscriptions page after login
+      localStorage.setItem('token', token);
+      navigate('/subscriptions');
       return response.data;
     } catch (error) {
       console.error('Login failed:', error.response ? error.response.data : error.message);
@@ -64,8 +65,8 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('token'); // Remove token from localStorage
-    navigate('/login'); // Redirect to login page after logout
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
   const createSubscription = async (paymentMethodId, priceId) => {
@@ -80,9 +81,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const createPaymentIntent = async (priceId) => {
+  const createPaymentIntent = async (priceId, paymentMethodType) => {
     try {
-      const response = await axios.post('/api/payment/create-payment-intent', { priceId }, {
+      const response = await axios.post('/api/payment/create-payment-intent', { priceId, paymentMethodType }, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       return response.data;

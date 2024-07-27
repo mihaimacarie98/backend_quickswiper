@@ -16,7 +16,6 @@ router.post('/create', auth, async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
-    // Ensure stripeCustomerId is present and not an empty string
     if (!user.stripeCustomerId || user.stripeCustomerId.trim() === '') {
       return res.status(400).json({ msg: 'User does not have a valid Stripe customer ID' });
     }
@@ -33,7 +32,6 @@ router.post('/create', auth, async (req, res) => {
 
     // Retrieve the price and product details
     const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
-    const product = price.product;
 
     // Create a new subscription
     const subscription = await stripe.subscriptions.create({
@@ -46,11 +44,11 @@ router.post('/create', auth, async (req, res) => {
       userId: user.id,
       stripeCustomerId: user.stripeCustomerId,
       stripeSubscriptionId: subscription.id,
-      priceId: priceId,
-      price: subscription.latest_invoice.payment_intent.amount_received / 100, // Convert to dollars
-      currency: subscription.latest_invoice.payment_intent.currency,
-      productName: product.name,
-      productDescription: product.description,
+      priceId: price.id,
+      price: price.unit_amount / 100, // Convert to dollars
+      currency: price.currency,
+      productName: price.product.name, // Include product name
+      productDescription: price.product.description, // Include product description
       status: subscription.status,
       current_period_start: subscription.current_period_start,
       current_period_end: subscription.current_period_end,
@@ -64,7 +62,6 @@ router.post('/create', auth, async (req, res) => {
     res.status(500).send('Server error');
   }
 });
-
 
 // Route for fetching all subscriptions for the user
 router.get('/subscriptions', auth, async (req, res) => {
@@ -125,4 +122,59 @@ router.post('/cancel', auth, async (req, res) => {
   }
 });
 
+// router.get('/confirm-ideal-payment', async (req, res) => {
+//   const { payment_intent_id, priceId } = req.query;
+//   try {
+//     const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+
+//     if (paymentIntent.status === 'succeeded') {
+//       // Assuming you have a way to get the user based on the paymentIntent or a session
+//       const user = await User.findById(paymentIntent.metadata.userId);
+//       if (!user) {
+//         return res.status(404).json({ msg: 'User not found' });
+//       }
+
+//       // Attach the payment method to the Stripe customer
+//     await stripe.paymentMethods.attach(paymentIntent.payment_method, {
+//       customer: user.stripeCustomerId,
+//     });
+
+//     // Set the default payment method on the customer
+//     await stripe.customers.update(user.stripeCustomerId, {
+//       invoice_settings: { default_payment_method: paymentIntent.payment_method },
+//     });
+//        // Retrieve the price and product details
+//     const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+
+//     // Create a new subscription
+//     const subscription = await stripe.subscriptions.create({
+//       customer: user.stripeCustomerId,
+//       items: [{ price: priceId }],
+//       expand: ['latest_invoice.payment_intent'],
+//     });
+    
+//     const newSubscription = new Subscription({
+//       userId: user.id,
+//       stripeCustomerId: user.stripeCustomerId,
+//       stripeSubscriptionId: subscription.id,
+//       priceId: price.id,
+//       price: price.unit_amount / 100, // Convert to dollars
+//       currency: price.currency,
+//       productName: price.product.name, // Include product name
+//       productDescription: price.product.description, // Include product description
+//       status: subscription.status,
+//       current_period_start: subscription.current_period_start,
+//       current_period_end: subscription.current_period_end,
+//       canceled_at_period_end: subscription.cancel_at_period_end,
+//     });
+//       await newSubscription.save();
+//       res.redirect('https://client.quickswiper.com/subscriptions'); // Redirect to subscriptions page after confirming payment
+//     } else {
+//       res.redirect('https://client.quickswiper.com/checkout?error=payment_failed');
+//     }
+//   } catch (err) {
+//     console.error('Server error:', err.message);
+//     res.status(500).send('Server error');
+//   }
+// });
 module.exports = router;
